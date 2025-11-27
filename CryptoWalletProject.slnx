@@ -20,7 +20,11 @@
     <Project Path="IdentityService.Domain/IdentityService.Domain.csproj" />
     <Project Path="IdentityService.Infrastructure/IdentityService.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/services/notification-service/" />
+  <Folder Name="/src/services/notification-service/">
+    <Project Path="NotificationService.Api/NotificationService.Api.csproj" Id="8c95c612-50c8-460d-bcae-91264bf57b97" />
+    <Project Path="NotificationService.Domain/NotificationService.Domain.csproj" Id="bdd6ae85-9921-4813-9db0-5b6c9b5e77d3" />
+    <Project Path="NotificationService.Infrastructure/NotificationService.Infrastructure.csproj" Id="079f9750-5b6d-4204-8322-afe59440e64e" />
+  </Folder>
   <Folder Name="/src/services/wallet-service/">
     <Project Path="WalletService.Api/WalletService.Api.csproj" />
     <Project Path="WalletService.Domain/WalletService.Domain.csproj" />

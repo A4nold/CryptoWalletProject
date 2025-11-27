@@ -2,11 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="Data\" />
     <Folder Include="Encryption\" />
     <Folder Include="Messaging\" />
     <Folder Include="Config\" />
