@@ -24,7 +24,7 @@ namespace NotificationService.Domain.Entities
         public NotificationStatus Status { get; set; } = NotificationStatus.Pending;
 
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        public DateTimeOffset? SentAt { get; set; };
+        public DateTimeOffset? SentAt { get; set; }
 
         public string? LastError { get; set; }
 

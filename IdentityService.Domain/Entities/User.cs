@@ -2,12 +2,19 @@
 {
     public class User
     {
-        public Guid id { get; set; }
+        public Guid Id { get; set; }
+
         public string Email { get; set; } = default!;
         public string PasswordHash { get; set; } = default!;
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
 
-        public List<RefreshToken> RefreshToken { get; set; } = new();
+        public bool EmailConfirmed { get; set; }
+
+        public bool IsLockedOut { get; set; }
+        public DateTimeOffset? LockoutEnd { get; set; }
+
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset? UpdatedAt { get; set; }
+
+        public List<RefreshToken> RefreshTokens { get; set; } = new();
     }
 }

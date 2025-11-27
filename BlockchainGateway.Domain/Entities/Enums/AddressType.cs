@@ -5,6 +5,6 @@
         Deposit = 1,
         HotWallet = 2,
         ColdWallet = 3,
-        Other = 4s
+        Other = 4
     }
 }

@@ -14,13 +14,53 @@ public class IdentityDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.Email)
+        ConfigureUser(modelBuilder);
+        ConfigureRefreshToken(modelBuilder);
+    }
+
+    private static void ConfigureUser(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<User>();
+
+        entity.ToTable("Users", "identity");
+
+        entity.HasKey(u => u.Id);
+
+        entity.HasIndex(u => u.Email)
             .IsUnique();
 
-        modelBuilder.Entity<RefreshToken>()
+        entity.Property(u => u.Email)
+            .IsRequired()
+            .HasMaxLength(256);
+
+        entity.Property(u => u.PasswordHash)
+            .IsRequired()
+            .HasMaxLength(512);
+
+        entity.Property(u => u.CreatedAt)
+            .IsRequired();
+
+        entity.Property(u => u.UpdatedAt);
+    }
+
+    private static void ConfigureRefreshToken(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<RefreshToken>();
+
+        entity.ToTable("RefreshTokens", "identity");
+
+        entity.HasKey(r => r.Id);
+
+        entity.Property(r => r.Token)
+            .IsRequired()
+            .HasMaxLength(512);
+
+        entity.HasIndex(r => r.UserId);
+
+        entity
             .HasOne(r => r.User)
-            .WithMany(r => r.RefreshToken)
-            .HasForeignKey(r => r.UserId);
+            .WithMany(u => u.RefreshTokens)
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
