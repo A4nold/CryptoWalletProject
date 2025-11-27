@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/api-gateway/" />
+  <Folder Name="/src/docs/" />
+  <Folder Name="/src/frontend/" />
+  <Folder Name="/src/frontend/react-app/" />
+  <Folder Name="/src/infrastructure/" />
+  <Folder Name="/src/infrastructure/docker/">
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Folder Name="/src/infrastructure/scripts/" />
+  <Folder Name="/src/services/" />
+  <Folder Name="/src/services/blockchain-gateway/">
+    <Project Path="BlockchainGateway.Api/BlockchainGateway.Api.csproj" />
+    <Project Path="BlockchainGateway.Domain/BlockchainGateway.Domain.csproj" />
+    <Project Path="BlockchainGateway.Infrastructure/BlockchainGateway.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/services/identity-service/">
+    <Project Path="IdentityService.Api/IdentityService.Api.csproj" />
+    <Project Path="IdentityService.Domain/IdentityService.Domain.csproj" />
+    <Project Path="IdentityService.Infrastructure/IdentityService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/services/notification-service/" />
+  <Folder Name="/src/services/wallet-service/">
+    <Project Path="WalletService.Api/WalletService.Api.csproj" />
+    <Project Path="WalletService.Domain/WalletService.Domain.csproj" />
+    <Project Path="WalletService.Infrastructure/WalletService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/services/wallet-service/tests/">
+    <Project Path="WalletService.Tests/WalletService.Tests.csproj" />
+  </Folder>
+</Solution>
