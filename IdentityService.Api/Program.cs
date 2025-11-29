@@ -1,4 +1,3 @@
-using System.Text;
 using IdentityService.Application;
 using IdentityService.Application.Contracts;
 using IdentityService.Application.Models;
@@ -9,13 +8,49 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Basic doc info (optional but nice)
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Identity Service API",
+        Version = "v1"
+    });
+
+    // Define the Bearer auth scheme (JWT)
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Description = "Enter 'Bearer' [space] and then your valid JWT token.\n\nExample: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference
+        {
+            Type = ReferenceType.SecurityScheme,
+            Id = "Bearer"
+        }
+    };
+
+    options.AddSecurityDefinition("Bearer", securityScheme);
+
+    // Require Bearer token globally (for endpoints with [Authorize])
+    var securityRequirement = new OpenApiSecurityRequirement
+    {
+        { securityScheme, Array.Empty<string>() }
+    };
+
+    options.AddSecurityRequirement(securityRequirement);
+});
 
 // DbContext
 builder.Services.AddDbContext<IdentityDbContext>(options =>
