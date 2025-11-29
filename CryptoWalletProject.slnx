@@ -31,6 +31,7 @@
   </Folder>
   <Folder Name="/src/services/wallet-service/">
     <Project Path="WalletService.Api/WalletService.Api.csproj" />
+    <Project Path="WalletService.Application/WalletService.Application.csproj" Id="bfb6c3cc-2d42-4c7c-b7eb-8808864f7644" />
     <Project Path="WalletService.Domain/WalletService.Domain.csproj" />
     <Project Path="WalletService.Infrastructure/WalletService.Infrastructure.csproj" />
   </Folder>

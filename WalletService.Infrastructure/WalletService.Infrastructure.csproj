@@ -10,15 +10,18 @@
     <Folder Include="Encryption\" />
     <Folder Include="Messaging\" />
     <Folder Include="Config\" />
+    <Folder Include="Migrations\" />
     <Folder Include="Repositories\" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WalletService.Application\WalletService.Application.csproj" />
     <ProjectReference Include="..\WalletService.Domain\WalletService.Domain.csproj" />
   </ItemGroup>
 

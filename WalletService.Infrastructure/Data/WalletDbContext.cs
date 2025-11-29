@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WalletService.Domain.Entities;
+using WalletService.Domain.Entities.Enum;
 
 namespace WalletService.Infrastructure.Data;
 
@@ -38,16 +39,27 @@ public class WalletDbContext : DbContext
 
         entity.HasKey(w => w.Id);
 
+        // UserId is now Guid – no max length needed
         entity.Property(w => w.UserId)
-            .IsRequired()
-            .HasMaxLength(100);
+            .IsRequired();
 
         entity.Property(w => w.WalletName)
             .IsRequired()
             .HasMaxLength(100);
 
+        entity.Property(w => w.Status)
+            .HasConversion<int>()       // store enum as int
+            .IsRequired();
+
         entity.Property(w => w.CreatedAt)
             .IsRequired();
+
+        // Helpful index: query wallets by user quickly
+        entity.HasIndex(w => w.UserId);
+
+        // Optional: at most one default wallet per user – enforced by app logic,
+        // but an index still helps queries like "WHERE UserId = ... AND IsDefault = true".
+        entity.HasIndex(w => new { w.UserId, w.IsDefault });
     }
 
     private static void ConfigureWalletAsset(ModelBuilder modelBuilder)
@@ -66,9 +78,22 @@ public class WalletDbContext : DbContext
             .IsRequired()
             .HasMaxLength(50);
 
+        entity.Property(a => a.AvailableBalance)
+            .HasColumnType("numeric(38,18)")
+            .IsRequired();
+
+        entity.Property(a => a.PendingBalance)
+            .HasColumnType("numeric(38,18)")
+            .IsRequired();
+
+        // A wallet should have at most one row per (Symbol, Network)
+        entity.HasIndex(a => new { a.WalletId, a.Symbol, a.Network })
+            .IsUnique();
+
         entity.HasOne(a => a.Wallet)
             .WithMany(w => w.Assets)
-            .HasForeignKey(a => a.WalletId);
+            .HasForeignKey(a => a.WalletId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void ConfigureWalletTransaction(ModelBuilder modelBuilder)
@@ -80,7 +105,8 @@ public class WalletDbContext : DbContext
         entity.HasKey(t => t.Id);
 
         entity.Property(t => t.Amount)
-            .HasColumnType("numeric(38,18)");
+            .HasColumnType("numeric(38,18)")
+            .IsRequired();
 
         entity.Property(t => t.FeeAmount)
             .HasColumnType("numeric(38,18)");
@@ -91,13 +117,28 @@ public class WalletDbContext : DbContext
         entity.Property(t => t.ExternalTransactionId)
             .HasMaxLength(200);
 
+        // Enum conversions (Direction/Type/Status)
+        entity.Property(t => t.Direction)
+            .HasConversion<int>()
+            .IsRequired();
+
+        entity.Property(t => t.Type)
+            .HasConversion<int>()
+            .IsRequired();
+
+        entity.Property(t => t.Status)
+            .HasConversion<int>()
+            .IsRequired();
+
         entity.HasOne(t => t.Wallet)
-            .WithMany()
-            .HasForeignKey(t => t.WalletId);
+            .WithMany() // you can change to .WithMany(w => w.Transactions) if you add that nav
+            .HasForeignKey(t => t.WalletId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         entity.HasOne(t => t.WalletAsset)
-            .WithMany()
-            .HasForeignKey(t => t.WalletAssetId);
+            .WithMany() // or .WithMany(a => a.Transactions) if you add that nav later
+            .HasForeignKey(t => t.WalletAssetId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     private static void ConfigureDepositAddress(ModelBuilder modelBuilder)
@@ -116,13 +157,18 @@ public class WalletDbContext : DbContext
             .IsRequired()
             .HasMaxLength(50);
 
+        // Typically you'd want only one active deposit address per (WalletAsset, Network)
+        entity.HasIndex(d => new { d.WalletId, d.WalletAssetId, d.Network });
+
         entity.HasOne(d => d.Wallet)
             .WithMany()
-            .HasForeignKey(d => d.WalletId);
+            .HasForeignKey(d => d.WalletId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         entity.HasOne(d => d.WalletAsset)
             .WithMany()
-            .HasForeignKey(d => d.WalletAssetId);
+            .HasForeignKey(d => d.WalletAssetId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void ConfigureWithdrawalRequest(ModelBuilder modelBuilder)
@@ -142,14 +188,17 @@ public class WalletDbContext : DbContext
             .HasMaxLength(50);
 
         entity.Property(wr => wr.Amount)
-            .HasColumnType("numeric(38,18)");
+            .HasColumnType("numeric(38,18)")
+            .IsRequired();
 
         entity.HasOne(wr => wr.Wallet)
             .WithMany()
-            .HasForeignKey(wr => wr.WalletId);
+            .HasForeignKey(wr => wr.WalletId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         entity.HasOne(wr => wr.WalletAsset)
             .WithMany()
-            .HasForeignKey(wr => wr.WalletAssetId);
+            .HasForeignKey(wr => wr.WalletAssetId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -20,7 +20,7 @@ namespace WalletService.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     WalletName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     IsDefault = table.Column<bool>(type: "boolean", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
@@ -41,8 +41,8 @@ namespace WalletService.Infrastructure.Migrations
                     WalletId = table.Column<Guid>(type: "uuid", nullable: false),
                     Symbol = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Network = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    AvailableBalance = table.Column<decimal>(type: "numeric", nullable: false),
-                    PendingBalance = table.Column<decimal>(type: "numeric", nullable: false),
+                    AvailableBalance = table.Column<decimal>(type: "numeric(38,18)", nullable: false),
+                    PendingBalance = table.Column<decimal>(type: "numeric(38,18)", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
@@ -118,7 +118,7 @@ namespace WalletService.Infrastructure.Migrations
                         principalSchema: "wallet",
                         principalTable: "WalletAssets",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_WalletTransactions_Wallets_WalletId",
                         column: x => x.WalletId,
@@ -154,7 +154,7 @@ namespace WalletService.Infrastructure.Migrations
                         principalSchema: "wallet",
                         principalTable: "WalletAssets",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_WithdrawalRequests_Wallets_WalletId",
                         column: x => x.WalletId,
@@ -171,16 +171,29 @@ namespace WalletService.Infrastructure.Migrations
                 column: "WalletAssetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DepositAddresses_WalletId",
+                name: "IX_DepositAddresses_WalletId_WalletAssetId_Network",
                 schema: "wallet",
                 table: "DepositAddresses",
-                column: "WalletId");
+                columns: new[] { "WalletId", "WalletAssetId", "Network" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_WalletAssets_WalletId",
+                name: "IX_WalletAssets_WalletId_Symbol_Network",
                 schema: "wallet",
                 table: "WalletAssets",
-                column: "WalletId");
+                columns: new[] { "WalletId", "Symbol", "Network" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Wallets_UserId",
+                schema: "wallet",
+                table: "Wallets",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Wallets_UserId_IsDefault",
+                schema: "wallet",
+                table: "Wallets",
+                columns: new[] { "UserId", "IsDefault" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_WalletTransactions_WalletAssetId",
