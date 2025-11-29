@@ -15,9 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Chaos.NaCl.Standard" Version="1.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="SimpleBase" Version="5.6.0" />
   </ItemGroup>
 
   <ItemGroup>

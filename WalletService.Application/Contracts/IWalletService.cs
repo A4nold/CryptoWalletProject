@@ -13,5 +13,8 @@ public interface IWalletService
     Task<Result<IReadOnlyList<TransactionDto>>> GetTransactionsAsync(
         Guid userId,
         TransactionsQuery query);
+
+    // NEW
+    Task<Result<WalletDto>> LinkSolanaWalletAsync(Guid userId, LinkSolanaWalletRequest request);
 }
 

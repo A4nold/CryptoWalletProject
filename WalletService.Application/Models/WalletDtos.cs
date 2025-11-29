@@ -7,9 +7,21 @@ public record WalletAssetDto(
     decimal AvailableBalance,
     decimal PendingBalance);
 
+public record ExternalWalletDto(
+    Guid Id,
+    string Network,
+    string PublicKey,
+    string? Label,
+    bool IsPrimary,
+    DateTimeOffset LinkedAt,
+    DateTimeOffset? LastVerifiedAt);
+
+
 public record WalletDto(
     Guid Id,
     Guid UserId,
     string WalletName,
     bool IsDefault,
-    IEnumerable<WalletAssetDto> Assets);
+    IReadOnlyList<WalletAssetDto> Assets,
+    IReadOnlyList<ExternalWalletDto> ExternalWallets // NEW
+);

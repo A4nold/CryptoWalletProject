@@ -107,4 +107,22 @@ public class WalletController : ControllerBase
 
         return Ok(result.Value);
     }
+
+    /// <summary>
+    /// Link an external Solana wallet (e.g. Phantom) to this user's default wallet.
+    /// For MVP this stores the public key and metadata. Later, the signature and message
+    /// will be used to cryptographically verify ownership.
+    /// </summary>
+    [HttpPost("link-solana")]
+    public async Task<IActionResult> LinkSolana([FromBody] LinkSolanaWalletRequest request)
+    {
+        var userId = GetUserId();
+
+        var result = await _walletService.LinkSolanaWalletAsync(userId, request);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { errors = result.Errors });
+
+        return Ok(result.Value);
+    }
 }

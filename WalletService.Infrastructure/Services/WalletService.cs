@@ -4,6 +4,7 @@ using WalletService.Application.Models;
 using WalletService.Domain.Entities;
 using WalletService.Domain.Entities.Enum;
 using WalletService.Infrastructure.Data;
+using WalletService.Infrastructure.Crypto;
 
 namespace WalletService.Infrastructure.Services;
 
@@ -21,6 +22,7 @@ public class WalletService : IWalletService
         // Try to find a default wallet for this user
         var wallet = await _db.Wallets
             .Include(w => w.Assets)
+            .Include(w => w.ExternalWallets)
             .SingleOrDefaultAsync(w => w.UserId == userId && w.IsDefault);
 
         // If none exists, create one
@@ -182,6 +184,82 @@ public class WalletService : IWalletService
         return Result<IReadOnlyList<TransactionDto>>.Success(dtoList);
     }
 
+    public async Task<Result<WalletDto>> LinkSolanaWalletAsync(Guid userId, LinkSolanaWalletRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.PublicKey))
+            return Result<WalletDto>.Failure("Public key is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Signature))
+            return Result<WalletDto>.Failure("Signature is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Message))
+            return Result<WalletDto>.Failure("Message is required.");
+
+        var walletResult = await GetOrCreateDefaultWalletAsync(userId);
+        var wallet = await _db.Wallets
+            .Include(w => w.Assets)
+            .Include(w => w.ExternalWallets)
+            .SingleAsync(w => w.Id == walletResult.Value!.Id);
+
+
+        // 🔐 Real cryptographic verification
+        var isValid = SolanaSignatureVerifier.VerifyMessage(
+            request.PublicKey,
+            request.Signature,
+            request.Message);
+
+        if (!isValid)
+        {
+            return Result<WalletDto>.Failure("Invalid Solana signature or public key.");
+        }
+
+        const string network = "solana";
+
+        // Check if this public key is already linked
+        var existing = wallet.ExternalWallets
+            .SingleOrDefault(e =>
+                e.Network == network &&
+                e.PublicKey == request.PublicKey);
+
+        if (existing is not null)
+        {
+            // Just update verification timestamp
+            existing.LastVerifiedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            // First wallet on this network: mark as primary
+            var isFirstForNetwork = !wallet.ExternalWallets.Any(e => e.Network == network);
+
+            var externalWallet = new ExternalWallet
+            {
+                Id = Guid.NewGuid(),
+                WalletId = wallet.Id,
+                Wallet = wallet,
+                Network = network,
+                PublicKey = request.PublicKey,
+                Label = "Phantom wallet", // could be client-provided later
+                IsPrimary = isFirstForNetwork,
+                LinkedAt = DateTimeOffset.UtcNow,
+                LastVerifiedAt = DateTimeOffset.UtcNow
+            };
+
+            _db.ExternalWallets.Add(externalWallet);
+        }
+
+        wallet.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        // Reload to capture new external wallets
+        wallet = await _db.Wallets
+            .Include(w => w.Assets)
+            .Include(w => w.ExternalWallets)
+            .SingleAsync(w => w.Id == wallet.Id);
+
+        return Result<WalletDto>.Success(ToWalletDto(wallet));
+    }
+
     // ----------------- helpers -----------------
 
     private async Task<WalletAsset> GetOrCreateAssetAsync(Guid walletId, string symbol, string network)
@@ -210,22 +288,35 @@ public class WalletService : IWalletService
         return asset;
     }
 
-    private static WalletDto ToWalletDto(Wallet wallet)
+    private WalletDto ToWalletDto(Wallet wallet)
     {
-        var assets = wallet.Assets.Select(a =>
-            new WalletAssetDto(
+        var assets = wallet.Assets
+            .Select(a => new WalletAssetDto(
                 a.Id,
                 a.Symbol,
                 a.Network,
                 a.AvailableBalance,
-                a.PendingBalance));
+                a.PendingBalance))
+            .ToList();
+
+        var externalWallets = wallet.ExternalWallets
+            .Select(e => new ExternalWalletDto(
+                e.Id,
+                e.Network,
+                e.PublicKey,
+                e.Label,
+                e.IsPrimary,
+                e.LinkedAt,
+                e.LastVerifiedAt))
+            .ToList();
 
         return new WalletDto(
             wallet.Id,
             wallet.UserId,
             wallet.WalletName,
             wallet.IsDefault,
-            assets);
+            assets,
+            externalWallets);
     }
 
     private static TransactionDto ToTransactionDto(WalletTransaction tx)
