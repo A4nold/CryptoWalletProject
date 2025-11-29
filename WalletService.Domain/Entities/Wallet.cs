@@ -7,7 +7,7 @@ namespace WalletService.Domain.Entities
         public Guid Id { get; set; }
 
         // Coming from IdentityService – store as value only, no FK
-        public string UserId { get; set; } = default!;
+        public Guid UserId { get; set; } = default!;
 
         public string WalletName { get; set; } = default!;
         public bool IsDefault { get; set; }

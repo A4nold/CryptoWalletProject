@@ -55,7 +55,7 @@ namespace WalletService.Infrastructure.Migrations
 
                     b.HasIndex("WalletAssetId");
 
-                    b.HasIndex("WalletId");
+                    b.HasIndex("WalletId", "WalletAssetId", "Network");
 
                     b.ToTable("DepositAddresses", "wallet");
                 });
@@ -78,10 +78,8 @@ namespace WalletService.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("WalletName")
                         .IsRequired()
@@ -89,6 +87,10 @@ namespace WalletService.Infrastructure.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "IsDefault");
 
                     b.ToTable("Wallets", "wallet");
                 });
@@ -100,7 +102,7 @@ namespace WalletService.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("AvailableBalance")
-                        .HasColumnType("numeric");
+                        .HasColumnType("numeric(38,18)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -111,7 +113,7 @@ namespace WalletService.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<decimal>("PendingBalance")
-                        .HasColumnType("numeric");
+                        .HasColumnType("numeric(38,18)");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
@@ -126,7 +128,8 @@ namespace WalletService.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WalletId");
+                    b.HasIndex("WalletId", "Symbol", "Network")
+                        .IsUnique();
 
                     b.ToTable("WalletAssets", "wallet");
                 });
@@ -268,7 +271,7 @@ namespace WalletService.Infrastructure.Migrations
                     b.HasOne("WalletService.Domain.Entities.WalletAsset", "WalletAsset")
                         .WithMany()
                         .HasForeignKey("WalletAssetId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("WalletService.Domain.Entities.Wallet", "Wallet")
@@ -287,7 +290,7 @@ namespace WalletService.Infrastructure.Migrations
                     b.HasOne("WalletService.Domain.Entities.WalletAsset", "WalletAsset")
                         .WithMany()
                         .HasForeignKey("WalletAssetId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("WalletService.Domain.Entities.Wallet", "Wallet")
