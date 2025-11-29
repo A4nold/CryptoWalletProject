@@ -20,6 +20,7 @@
   </Folder>
   <Folder Name="/src/services/identity-service/">
     <Project Path="IdentityService.Api/IdentityService.Api.csproj" />
+    <Project Path="IdentityService.Application/IdentityService.Application.csproj" Id="344a20c0-e6e9-494f-965b-d722da9b5d17" />
     <Project Path="IdentityService.Domain/IdentityService.Domain.csproj" />
     <Project Path="IdentityService.Infrastructure/IdentityService.Infrastructure.csproj" />
   </Folder>

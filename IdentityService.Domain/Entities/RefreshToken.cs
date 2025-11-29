@@ -4,7 +4,7 @@
     {
         public Guid Id { get; set; }
 
-        public Guid UserId { get; set; }
+        public Guid AppUserId { get; set; }
         public string Token { get; set; } = default!;
 
         public DateTimeOffset ExpiresAt { get; set; }
@@ -19,6 +19,6 @@
         // Convenience property
         public bool IsActive => RevokedAt == null && DateTimeOffset.UtcNow < ExpiresAt;
 
-        public User User { get; set; } = default!;
+        public AppUser AppUser { get; set; } = default!;
     }
 }
