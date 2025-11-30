@@ -3,6 +3,7 @@ using System;
 using BlockchainGateway.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BlockchainGateway.Infrastructure.Migrations
 {
     [DbContext(typeof(BlockchainDbContext))]
-    partial class BlockchainDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251130145435_SeedSolanaDevNetNetwork")]
+    partial class SeedSolanaDevNetNetwork
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -94,18 +97,6 @@ namespace BlockchainGateway.Infrastructure.Migrations
                     b.HasIndex("NetworkId");
 
                     b.ToTable("BlockchainAddresses", "blockchain");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
-                            Address = "9A88a6gjmjoN88HMEhXveSrP4Q5appeCWz2gsUE4a2Kz",
-                            AddressType = 2,
-                            CreatedAt = new DateTimeOffset(new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            IsActive = true,
-                            Label = "Solana Devnet Hot Wallet",
-                            NetworkId = new Guid("11111111-2222-3333-4444-555555555555")
-                        });
                 });
 
             modelBuilder.Entity("BlockchainGateway.Domain.Entities.BlockchainNetwork", b =>

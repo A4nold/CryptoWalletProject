@@ -9,17 +9,17 @@ namespace BlockchainGateway.Domain.Entities
     {
         public Guid Id { get; set; }
 
-        public string Name { get; set; } = default!;        // "Bitcoin Mainnet"
-        public string Symbol { get; set; } = default!;      // "BTC"
-        public string NetworkCode { get; set; } = default!; // "bitcoin-mainnet", "eth-mainnet"
+        public string Name { get; set; } = default!;        // "Solana Devnet"
+        public string Symbol { get; set; } = default!;      // "SOL"
+        public string NetworkCode { get; set; } = default!; // "solana-devnet", "eth-mainnet"
 
-        // For EVM-based chains; null for Bitcoin-like chains
+        // For EVM-based chains; null for solana chains
         public long? ChainId { get; set; }
 
         public string RpcEndpoint { get; set; } = default!;
         public string? ExplorerBaseUrl { get; set; }
 
-        public NetworkType NetworkType { get; set; } = NetworkType.Mainnet;
+        public NetworkType NetworkType { get; set; } = NetworkType.Devnet;
 
         public bool IsEnabled { get; set; } = true;
 

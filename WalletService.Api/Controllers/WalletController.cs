@@ -125,4 +125,39 @@ public class WalletController : ControllerBase
 
         return Ok(result.Value);
     }
+
+    /// <summary>
+    /// Get all external wallets linked to the current user's default wallet.
+    /// Example: multiple Solana addresses, EVM addresses, etc.
+    /// </summary>
+    [HttpGet("external-wallets")]
+    public async Task<IActionResult> GetExternalWallets()
+    {
+        var userId = GetUserId();
+
+        var result = await _walletService.GetExternalWalletsAsync(userId);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { errors = result.Errors });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Set a specific external wallet as the primary one for its network
+    /// (e.g. primary Solana wallet used by default for on-chain operations).
+    /// </summary>
+    [HttpPost("external-wallets/{externalWalletId:guid}/set-primary")]
+    public async Task<IActionResult> SetPrimaryExternalWallet([FromRoute] Guid externalWalletId)
+    {
+        var userId = GetUserId();
+
+        var result = await _walletService.SetPrimaryExternalWalletAsync(userId, externalWalletId);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { errors = result.Errors });
+
+        return Ok(result.Value);
+    }
+
 }

@@ -1,20 +1,26 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using WalletService.Application.Contracts;
 using WalletService.Application.Models;
 using WalletService.Domain.Entities;
 using WalletService.Domain.Entities.Enum;
-using WalletService.Infrastructure.Data;
 using WalletService.Infrastructure.Crypto;
+using WalletService.Infrastructure.Data;
 
 namespace WalletService.Infrastructure.Services;
 
 public class WalletService : IWalletService
 {
     private readonly WalletDbContext _db;
+    private readonly IBlockchainGatewayClient _blockchainGatewayClient;
+    private readonly BlockchainGatewayOptions _blockchainOptions;
 
-    public WalletService(WalletDbContext db)
+    public WalletService(WalletDbContext db, IBlockchainGatewayClient blockchainGatewayClient,
+        IOptions<BlockchainGatewayOptions> blockchainOptions)
     {
         _db = db;
+        _blockchainGatewayClient = blockchainGatewayClient;
+        _blockchainOptions = blockchainOptions.Value;
     }
 
     public async Task<Result<WalletDto>> GetOrCreateDefaultWalletAsync(Guid userId)
@@ -97,19 +103,102 @@ public class WalletService : IWalletService
         var walletResult = await GetOrCreateDefaultWalletAsync(userId);
         var wallet = await _db.Wallets
             .Include(w => w.Assets)
+            .Include(w => w.ExternalWallets)
             .SingleAsync(w => w.Id == walletResult.Value!.Id);
 
-        var asset = await GetOrCreateAssetAsync(wallet.Id, request.Symbol, request.Network);
+        var asset = await _db.WalletAssets
+            .SingleOrDefaultAsync(a =>
+                a.WalletId == wallet.Id &&
+                a.Symbol == request.Symbol &&
+                a.Network == request.Network);
+
+        if (asset is null)
+            return Result<WalletDto>.Failure("Asset not found for this wallet.");
 
         if (asset.AvailableBalance < request.Amount)
             return Result<WalletDto>.Failure("Insufficient available balance.");
 
+        // 🔐 We branch here: on-chain for Solana, or fallback off-chain.
+        var isSolana = string.Equals(asset.Network, _blockchainOptions.SolanaNetworkCode, StringComparison.OrdinalIgnoreCase);
+
+        if (!isSolana)
+        {
+            // --- Existing OFF-CHAIN behavior (you can keep this) ---
+            asset.AvailableBalance -= request.Amount;
+            asset.UpdatedAt = DateTimeOffset.UtcNow;
+
+            var txOffChain = new WalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                WalletId = wallet.Id,
+                Wallet = wallet,
+                WalletAssetId = asset.Id,
+                WalletAsset = asset,
+                Direction = WalletTransactionDirection.Outbound,
+                Type = WalletTransactionType.Withdrawal,
+                Status = WalletTransactionStatus.Confirmed,
+                Amount = request.Amount,
+                FeeAmount = 0m,
+                FeeAssetSymbol = null,
+                ExternalTransactionId = null,
+                RequestedAt = DateTimeOffset.UtcNow,
+                CompletedAt = DateTimeOffset.UtcNow,
+                Note = request.Note
+            };
+
+            _db.WalletTransactions.Add(txOffChain);
+
+            // You can still create WithdrawalRequest row here if you want
+            await _db.SaveChangesAsync();
+
+            await _db.Entry(wallet).Collection(w => w.Assets).LoadAsync();
+            await _db.Entry(wallet).Collection(w => w.ExternalWallets).LoadAsync();
+
+            return Result<WalletDto>.Success(ToWalletDto(wallet));
+        }
+
+        // --- ON-CHAIN SOLANA WITHDRAWAL PATH ---
+
+        // 1. Find user's primary external wallet for this network
+        var externalWallet = wallet.ExternalWallets
+            .Where(e => string.Equals(e.Network, asset.Network, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(e => e.IsPrimary)
+            .ThenBy(e => e.LinkedAt)
+            .FirstOrDefault();
+
+        if (externalWallet is null)
+            return Result<WalletDto>.Failure($"No linked external wallet found for network '{asset.Network}'.");
+
+        var toAddress = externalWallet.PublicKey;
+        var fromAddress = _blockchainOptions.SolanaHotWalletAddress;
+
+        if (string.IsNullOrWhiteSpace(fromAddress))
+            return Result<WalletDto>.Failure("Hot wallet address is not configured.");
+
+        // 2. Call BlockchainGateway
+        // correlationId can be a placeholder or derived from a future walletTx id
+        var correlationId = $"wallet-withdraw-{Guid.NewGuid():N}";
+
+        var gatewayResult = await _blockchainGatewayClient.WithdrawSolanaAsync(
+            networkCode: asset.Network,
+            fromAddress: fromAddress,
+            toAddress: toAddress,
+            amount: request.Amount,
+            correlationId: correlationId);
+
+        if (!gatewayResult.IsSuccess || gatewayResult.Value is null)
+        {
+            return Result<WalletDto>.Failure(
+                "Failed to initiate on-chain withdrawal via BlockchainGateway.");
+        }
+
+        var bcTx = gatewayResult.Value;
+
+        // 3. If gateway accepted the tx, debit the wallet and create a PENDING WalletTransaction
         asset.AvailableBalance -= request.Amount;
         asset.UpdatedAt = DateTimeOffset.UtcNow;
 
-        // For MVP, we mark withdrawal as Completed immediately.
-        // Later, this will become Pending until the BlockchainGateway confirms.
-        var tx = new WalletTransaction
+        var walletTx = new WalletTransaction
         {
             Id = Guid.NewGuid(),
             WalletId = wallet.Id,
@@ -117,20 +206,20 @@ public class WalletService : IWalletService
             WalletAssetId = asset.Id,
             WalletAsset = asset,
             Direction = WalletTransactionDirection.Outbound,
-            Type = WalletTransactionType.Withdrawal,           // adjust name if needed
-            Status = WalletTransactionStatus.Pending,        // or Pending if async
+            Type = WalletTransactionType.Withdrawal,
+            Status = WalletTransactionStatus.Pending, // pending on-chain confirmation
             Amount = request.Amount,
-            FeeAmount = 0m,
-            FeeAssetSymbol = null,
-            ExternalTransactionId = null,                      // will be tx hash later
+            FeeAmount = bcTx.Fee,
+            FeeAssetSymbol = asset.Symbol, // or use "SOL" explicitly, up to you
+            ExternalTransactionId = bcTx.TxHash, // tie to on-chain tx
             RequestedAt = DateTimeOffset.UtcNow,
-            CompletedAt = DateTimeOffset.UtcNow,
+            CompletedAt = null,
             Note = request.Note
         };
 
-        _db.WalletTransactions.Add(tx);
+        _db.WalletTransactions.Add(walletTx);
 
-        // Optional: create a WithdrawalRequest row if you want a separate table tracking it
+        // Optional: record a WithdrawalRequest too
         var withdrawalRequest = new WithdrawalRequest
         {
             Id = Guid.NewGuid(),
@@ -138,11 +227,11 @@ public class WalletService : IWalletService
             Wallet = wallet,
             WalletAssetId = asset.Id,
             WalletAsset = asset,
-            ToAddress = request.ToAddress,
-            Network = request.Network,
+            ToAddress = toAddress,
+            Network = asset.Network,
             Amount = request.Amount,
             RequestedAt = DateTimeOffset.UtcNow
-            // You can add Status, etc. if your entity has those
+            // You can add status fields later to track chain result
         };
 
         _db.WithdrawalRequests.Add(withdrawalRequest);
@@ -150,6 +239,7 @@ public class WalletService : IWalletService
         await _db.SaveChangesAsync();
 
         await _db.Entry(wallet).Collection(w => w.Assets).LoadAsync();
+        await _db.Entry(wallet).Collection(w => w.ExternalWallets).LoadAsync();
 
         return Result<WalletDto>.Success(ToWalletDto(wallet));
     }
@@ -258,6 +348,73 @@ public class WalletService : IWalletService
             .SingleAsync(w => w.Id == wallet.Id);
 
         return Result<WalletDto>.Success(ToWalletDto(wallet));
+    }
+
+    public async Task<Result<IReadOnlyList<ExternalWalletDto>>> GetExternalWalletsAsync(Guid userId)
+    {
+        // Ensure the user has a default wallet
+        var walletResult = await GetOrCreateDefaultWalletAsync(userId);
+        var walletId = walletResult.Value!.Id;
+
+        var externalWallets = await _db.ExternalWallets
+            .Where(e => e.WalletId == walletId)
+            .OrderBy(e => e.Network)
+            .ThenByDescending(e => e.IsPrimary)
+            .ThenBy(e => e.LinkedAt)
+            .ToListAsync();
+
+        var dtoList = externalWallets.Select(e => new ExternalWalletDto(
+            e.Id,
+            e.Network,
+            e.PublicKey,
+            e.Label,
+            e.IsPrimary,
+            e.LinkedAt,
+            e.LastVerifiedAt)).ToList();
+
+        return Result<IReadOnlyList<ExternalWalletDto>>.Success(dtoList);
+    }
+
+    public async Task<Result<ExternalWalletDto>> SetPrimaryExternalWalletAsync(Guid userId, Guid externalWalletId)
+    {
+        // Load the external wallet and ensure it belongs to this user
+        var externalWallet = await _db.ExternalWallets
+            .Include(e => e.Wallet)
+            .SingleOrDefaultAsync(e => e.Id == externalWalletId);
+
+        if (externalWallet is null)
+            return Result<ExternalWalletDto>.Failure("External wallet not found.");
+
+        if (externalWallet.Wallet.UserId != userId)
+            return Result<ExternalWalletDto>.Failure("You do not have access to this wallet.");
+
+        var network = externalWallet.Network;
+        var walletId = externalWallet.WalletId;
+
+        // Clear current primary for this network on this wallet
+        var othersOnNetwork = await _db.ExternalWallets
+            .Where(e => e.WalletId == walletId && e.Network == network)
+            .ToListAsync();
+
+        foreach (var w in othersOnNetwork)
+        {
+            w.IsPrimary = (w.Id == externalWalletId);
+        }
+
+        externalWallet.Wallet.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        var dto = new ExternalWalletDto(
+            externalWallet.Id,
+            externalWallet.Network,
+            externalWallet.PublicKey,
+            externalWallet.Label,
+            externalWallet.IsPrimary,
+            externalWallet.LinkedAt,
+            externalWallet.LastVerifiedAt);
+
+        return Result<ExternalWalletDto>.Success(dto);
     }
 
     // ----------------- helpers -----------------

@@ -1,10 +1,15 @@
 ﻿using BlockchainGateway.Domain.Entities;
+using BlockchainGateway.Domain.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlockchainGateway.Infrastructure.Data;
 
 public class BlockchainDbContext : DbContext
 {
+    private static readonly Guid SolanaDevnetId =
+    Guid.Parse("11111111-2222-3333-4444-555555555555"); // any fixed Guid, just don't change it later
+    private static readonly Guid SolanaDevnetHotWalletId =
+    Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"); // arbitrary fixed Guid
     public BlockchainDbContext(DbContextOptions<BlockchainDbContext> options)
         : base(options)
     {
@@ -28,6 +33,44 @@ public class BlockchainDbContext : DbContext
         ConfigureBlockchainTransaction(modelBuilder);
         ConfigureAddressMonitoringSubscription(modelBuilder);
         ConfigureNodeHealthCheck(modelBuilder);
+
+        SeedNetworks(modelBuilder);
+        SeedAddresses(modelBuilder);
+    }
+    private static void SeedAddresses(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BlockchainAddress>().HasData(
+            new BlockchainAddress
+            {
+                Id = SolanaDevnetHotWalletId,
+                NetworkId = SolanaDevnetId,
+                Address = "9A88a6gjmjoN88HMEhXveSrP4Q5appeCWz2gsUE4a2Kz", // <- replace when you know it
+                AddressType = AddressType.HotWallet,    // assuming your enum has HotWallet
+                Label = "Solana Devnet Hot Wallet",
+                IsActive = true,
+                CreatedAt = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            }
+        );
+    }
+    private static void SeedNetworks(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BlockchainNetwork>().HasData(
+            new BlockchainNetwork
+            {
+                Id = SolanaDevnetId,
+                Name = "Solana Devnet",
+                Symbol = "SOL",
+                NetworkCode = "solana-devnet",
+                ChainId = null, // not used for Solana
+                RpcEndpoint = "https://api.devnet.solana.com",
+                ExplorerBaseUrl = "https://explorer.solana.com/?cluster=devnet",
+                NetworkType = NetworkType.Devnet,  // or Devnet if you have that in your enum
+                IsEnabled = true,
+                // CreatedAt / UpdatedAt: you can leave them as default (EF will store min date),
+                // or set a fixed value:
+                CreatedAt = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            }
+        );
     }
 
     private static void ConfigureBlockchainNetwork(ModelBuilder modelBuilder)

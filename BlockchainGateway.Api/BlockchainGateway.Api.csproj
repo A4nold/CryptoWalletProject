@@ -29,6 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BlockchainGateway.Application\BlockchainGateway.Application.csproj" />
+    <ProjectReference Include="..\BlockchainGateway.Domain\BlockchainGateway.Domain.csproj" />
     <ProjectReference Include="..\BlockchainGateway.Infrastructure\BlockchainGateway.Infrastructure.csproj" />
   </ItemGroup>
 

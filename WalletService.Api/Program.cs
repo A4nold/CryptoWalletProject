@@ -1,11 +1,13 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 using WalletService.Application.Contracts;
 using WalletService.Application.Models;
 using WalletService.Infrastructure.Data;
+using WalletService.Infrastructure.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -77,6 +79,20 @@ builder.Services
             IssuerSigningKey = signingKey
         };
     });
+
+builder.Services.Configure<BlockchainGatewayOptions>(
+    builder.Configuration.GetSection("BlockchainGateway"));
+
+// HttpClient for BlockchainGateway
+builder.Services.AddHttpClient<IBlockchainGatewayClient, BlockchainGatewayClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<IOptions<BlockchainGatewayOptions>>().Value;
+
+    if (string.IsNullOrWhiteSpace(opts.BaseUrl))
+        throw new InvalidOperationException("BlockchainGateway:BaseUrl is not configured.");
+
+    client.BaseAddress = new Uri(opts.BaseUrl);
+});
 
 builder.Services.AddAuthorization();
 
