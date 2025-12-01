@@ -25,3 +25,6 @@ public record WalletDto(
     IReadOnlyList<WalletAssetDto> Assets,
     IReadOnlyList<ExternalWalletDto> ExternalWallets // NEW
 );
+public record WithdrawResultDto(
+    WalletDto Wallet,
+    string? BlockchainTransactionHash);

@@ -8,7 +8,7 @@ public interface IWalletService
 
     Task<Result<WalletDto>> DepositAsync(Guid userId, DepositRequest request);
 
-    Task<Result<WalletDto>> WithdrawAsync(Guid userId, WithdrawRequest request);
+    Task<Result<WithdrawResultDto>> WithdrawAsync(Guid userId, WithdrawRequest request);
 
     Task<Result<IReadOnlyList<TransactionDto>>> GetTransactionsAsync(
         Guid userId,
