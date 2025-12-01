@@ -16,6 +16,7 @@ public class WalletDbContext : DbContext
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
     public DbSet<DepositAddress> DepositAddresses => Set<DepositAddress>();
     public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
+    public DbSet<ExternalWallet> ExternalWallets => Set<ExternalWallet>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +30,7 @@ public class WalletDbContext : DbContext
         ConfigureWalletTransaction(modelBuilder);
         ConfigureDepositAddress(modelBuilder);
         ConfigureWithdrawalRequest(modelBuilder);
+        ConfigureExternalWallet(modelBuilder);
     }
 
     private static void ConfigureWallet(ModelBuilder modelBuilder)
@@ -201,4 +203,37 @@ public class WalletDbContext : DbContext
             .HasForeignKey(wr => wr.WalletAssetId)
             .OnDelete(DeleteBehavior.Restrict);
     }
+
+    private static void ConfigureExternalWallet(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<ExternalWallet>();
+
+        entity.ToTable("ExternalWallets");
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Network)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        entity.Property(e => e.PublicKey)
+            .IsRequired()
+            .HasMaxLength(100); // base58 Solana keys fit here
+
+        entity.Property(e => e.Label)
+            .HasMaxLength(100);
+
+        entity.Property(e => e.LinkedAt)
+            .IsRequired();
+
+        // One wallet should not have the same public key twice on the same network
+        entity.HasIndex(e => new { e.WalletId, e.Network, e.PublicKey })
+            .IsUnique();
+
+        entity.HasOne(e => e.Wallet)
+            .WithMany(w => w.ExternalWallets)
+            .HasForeignKey(e => e.WalletId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
 }

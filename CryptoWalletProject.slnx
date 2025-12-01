@@ -15,6 +15,7 @@
   <Folder Name="/src/services/" />
   <Folder Name="/src/services/blockchain-gateway/">
     <Project Path="BlockchainGateway.Api/BlockchainGateway.Api.csproj" />
+    <Project Path="BlockchainGateway.Application/BlockchainGateway.Application.csproj" Id="929c01ab-7275-49e8-a99d-ee4f603fbf49" />
     <Project Path="BlockchainGateway.Domain/BlockchainGateway.Domain.csproj" />
     <Project Path="BlockchainGateway.Infrastructure/BlockchainGateway.Infrastructure.csproj" />
   </Folder>

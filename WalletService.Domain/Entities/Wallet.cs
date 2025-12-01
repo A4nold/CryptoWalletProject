@@ -19,5 +19,8 @@ namespace WalletService.Domain.Entities
 
         // Navigation
         public ICollection<WalletAsset> Assets { get; set; } = new List<WalletAsset>();
+
+        // NEW: multiple linked external wallets (e.g. multiple Phantom addresses)
+        public ICollection<ExternalWallet> ExternalWallets { get; set; } = new List<ExternalWallet>();
     }
 }

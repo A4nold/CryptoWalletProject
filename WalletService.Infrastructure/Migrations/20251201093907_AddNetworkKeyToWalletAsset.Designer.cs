@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WalletService.Infrastructure.Data;
@@ -11,9 +12,11 @@ using WalletService.Infrastructure.Data;
 namespace WalletService.Infrastructure.Migrations
 {
     [DbContext(typeof(WalletDbContext))]
-    partial class WalletDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251201093907_AddNetworkKeyToWalletAsset")]
+    partial class AddNetworkKeyToWalletAsset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,6 +154,10 @@ namespace WalletService.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("NetworkKey")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<decimal>("PendingBalance")
                         .HasColumnType("numeric(38,18)");

@@ -9,15 +9,18 @@
   <ItemGroup>
     <Folder Include="Encryption\" />
     <Folder Include="Messaging\" />
-    <Folder Include="Config\" />
     <Folder Include="Migrations\" />
     <Folder Include="Repositories\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Chaos.NaCl.Standard" Version="1.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="SimpleBase" Version="5.6.0" />
+    <PackageReference Include="Solana.Rpc" Version="8.7.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -19,3 +19,8 @@ public record TransactionsQuery(
     string? Symbol = null,
     string? Network = null);
 
+public record LinkSolanaWalletRequest(
+    string PublicKey,
+    string Signature,
+    string Message);
+

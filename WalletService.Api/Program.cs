@@ -1,11 +1,15 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 using WalletService.Application.Contracts;
 using WalletService.Application.Models;
+using WalletService.Infrastructure.Config;
 using WalletService.Infrastructure.Data;
+using WalletService.Infrastructure.Services;
+using WalletService.Infrastructure.Workers;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,10 +82,32 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.Configure<BlockchainGatewayOptions>(
+    builder.Configuration.GetSection("BlockchainGateway"));
+
+builder.Services.Configure<SolanaNetworkOptions>(
+    builder.Configuration.GetSection("SolanaNetworks"));
+
+
+// HttpClient for BlockchainGateway
+builder.Services.AddHttpClient<IBlockchainGatewayClient, BlockchainGatewayClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<IOptions<BlockchainGatewayOptions>>().Value;
+
+    if (string.IsNullOrWhiteSpace(opts.BaseUrl))
+        throw new InvalidOperationException("BlockchainGateway:BaseUrl is not configured.");
+
+    client.BaseAddress = new Uri(opts.BaseUrl);
+});
+
+
 
 // Application services
 builder.Services.AddScoped<IWalletService, WalletService.Infrastructure.Services.WalletService>();
+builder.Services.AddSingleton<ISolanaRpcService, SolanaRpcService>();
+builder.Services.AddHostedService<SolanaConfirmationWorker>();
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
