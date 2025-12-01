@@ -6,8 +6,10 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using WalletService.Application.Contracts;
 using WalletService.Application.Models;
+using WalletService.Infrastructure.Config;
 using WalletService.Infrastructure.Data;
 using WalletService.Infrastructure.Services;
+using WalletService.Infrastructure.Workers;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,6 +85,10 @@ builder.Services
 builder.Services.Configure<BlockchainGatewayOptions>(
     builder.Configuration.GetSection("BlockchainGateway"));
 
+builder.Services.Configure<SolanaNetworkOptions>(
+    builder.Configuration.GetSection("SolanaNetworks"));
+
+
 // HttpClient for BlockchainGateway
 builder.Services.AddHttpClient<IBlockchainGatewayClient, BlockchainGatewayClient>((sp, client) =>
 {
@@ -94,10 +100,14 @@ builder.Services.AddHttpClient<IBlockchainGatewayClient, BlockchainGatewayClient
     client.BaseAddress = new Uri(opts.BaseUrl);
 });
 
-builder.Services.AddAuthorization();
+
 
 // Application services
 builder.Services.AddScoped<IWalletService, WalletService.Infrastructure.Services.WalletService>();
+builder.Services.AddSingleton<ISolanaRpcService, SolanaRpcService>();
+builder.Services.AddHostedService<SolanaConfirmationWorker>();
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 

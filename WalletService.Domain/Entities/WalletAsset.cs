@@ -7,8 +7,8 @@
         public Guid WalletId { get; set; }
         public Wallet Wallet { get; set; } = default!;
 
-        public string Symbol { get; set; } = default!;   // e.g. "BTC"
-        public string Network { get; set; } = default!;  // e.g. "bitcoin", "ethereum"
+        public string Symbol { get; set; } = default!;   // e.g. "SOL"
+        public string Network { get; set; } = default!;  // e.g. "solana-devnet", "solana-mainet"
 
         // Monetary values should generally be decimal
         public decimal AvailableBalance { get; set; }

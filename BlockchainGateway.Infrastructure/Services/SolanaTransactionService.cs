@@ -52,7 +52,7 @@ namespace BlockchainGateway.Infrastructure.Services
                 return Result<BlockchainTransactionDto>.Failure("Amount must be greater than zero.");
 
             if (string.IsNullOrWhiteSpace(_hotWalletOptions.PublicKey) ||
-                string.IsNullOrWhiteSpace(_hotWalletOptions.PrivateKeyBase58))
+                string.IsNullOrWhiteSpace(_hotWalletOptions.PrivateKey))
             {
                 return Result<BlockchainTransactionDto>.Failure("Hot wallet configuration is missing.");
             }
@@ -69,19 +69,19 @@ namespace BlockchainGateway.Infrastructure.Services
             try
             {
                 // 4. Decode Phantom base58 secret key
-                byte[] keyPair = Encoders.Base58.DecodeData(_hotWalletOptions.PrivateKeyBase58);
+                byte[] secretKey = Encoders.Base58.DecodeData(_hotWalletOptions.PrivateKey);
 
-                if (keyPair.Length != 64)
+                if (secretKey.Length != 64)
                 {
-                    _logger.LogError("Invalid Solana private key length. Got {Length}, expected 64.", keyPair.Length);
+                    _logger.LogError("Invalid Solana private key length. Got {Length}, expected 64.", secretKey.Length);
                     return Result<BlockchainTransactionDto>.Failure("Invalid Solana private key format.");
                 }
 
                 // First 32 bytes = private key, next 32 = public key
-                byte[] privateKey = keyPair[..32];
-                byte[] publicKey = keyPair[32..];
+                //byte[] privateKey = keyPair[..32];
+                //byte[] publicKey = keyPair[32..];
 
-                var account = new Account(privateKey, publicKey);
+                var account = Account.FromSecretKey(_hotWalletOptions.PrivateKey);
 
                 // Sanity check public key
                 var derivedPubKey = account.PublicKey.Key;
